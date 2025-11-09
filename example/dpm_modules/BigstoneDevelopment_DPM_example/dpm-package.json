@@ -1,0 +1,20 @@
+{
+  "name": "Example Package",
+  "description": "A example DPM package",
+  "author": "BigstoneDevelopment",
+  "licensePath": "./LICENSE.txt",
+  
+  "supportedVersions": "10-27",
+
+  "base": "./datapack",
+  "overlays": {
+    "<10": "./overlays/legacy"
+  },
+
+  "load": [
+    "namespace:load"
+  ],
+  "tick": [
+    "namespace:tick"
+  ]
+}

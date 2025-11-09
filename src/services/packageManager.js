@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
+import AdmZip from "adm-zip";
 import log from "../utils/log.js";
 import { downloadFile } from "../utils/downloadFile.js";
 import { fetchDpmConfig } from "../utils/fetchDPMConfig.js";
 import { validateDpmConfig } from "../utils/validateDPMConfig.js";
-import { execSync } from "child_process";
 
 export async function install(pkg, projectDir) {
     try {
@@ -36,14 +36,18 @@ export async function install(pkg, projectDir) {
             return;
         };
 
-        log.debug(`> ${zipUrl}`);
+        log.debug(`- ${zipUrl}`);
 
         const tmpZip = path.join(modulesDir, `${repo}-${branch}.zip`);
 
         await downloadFile(zipUrl, tmpZip);
 
-        fs.mkdirSync(pkgDir, { recursive: true });
-        execSync(`unzip -q -o "${tmpZip}" -d "${modulesDir}"`);
+        if (!fs.existsSync(tmpZip) || fs.statSync(tmpZip).size < 500) {
+            throw new Error("Downloaded ZIP file is invalid or empty.");
+        }
+
+        const zip = new AdmZip(tmpZip);
+        zip.extractAllTo(modulesDir, true);
         fs.unlinkSync(tmpZip);
 
         const extractedDir = path.join(modulesDir, `${repo}-${branch}`);

@@ -1,0 +1,11 @@
+{
+  "name": "example",
+  "licensePath": "./LICENSE.txt",
+
+  "datapackPath": "./src",
+  "buildPath": "./build",
+  
+  "dependencies": [
+    "BigstoneDevelopment/DPM/example"
+  ]
+}
