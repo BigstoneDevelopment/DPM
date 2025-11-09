@@ -1,5 +1,5 @@
 {
-  "name": "dpm",
+  "name": "@bigstonedevelopment/dpm",
   "version": "1.0.0",
   "description": "A Minecraft Datapack Package/Library manager.",
   "keywords": [
@@ -21,8 +21,15 @@
   "license": "MIT",
   "author": "Bigstone Development",
   "type": "module",
+  "bin": {
+    "dpm": "./bin/dpm.js"
+  },
   "main": "/src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  }
+  },
+  "dependencies": {
+    "chalk": "^5.6.2"
+  },
+  "devDependencies": {}
 }

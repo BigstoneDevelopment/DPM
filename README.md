@@ -44,10 +44,28 @@ npm i -g @bigstonedevelopment/dpm
     <li><code>dpm package</code> - <strong>Create package</strong></li>
 </ul>
 
+<h3>Datapack Config file (Package List)</h3>
+<p>For DPM to store metadata for building and which packages it needs, you need to create <code>dpm.json</code> in the same folder as /data.</p>
+
+```json
+{
+  "name": "Folder Name",
+  "licensePath": "./LICENSE.txt", /* This is put in /Folder Name/LICENSE.txt */
+
+  "datapackPath": "./src",
+  "buildPath": "./build",
+
+  "dependencies": [ /* dpm install will automatically add packages to this */
+    "@user/repo",
+    "@user/repo/branch",
+  ]
+}
+```
+
 <h2>Package Developers</h2>
 
 <h3>Config file</h3>
-<p>For DPM to reconise your repo as a package you need a <code>dpm.json</code> file at the root ( / ) of your repo.</p>
+<p>For DPM to reconise your repo as a package you need a <code>dpm-package.json</code> file at the root ( / ) of your repo.</p>
 
 ```json
 {
@@ -80,6 +98,7 @@ npm i -g @bigstonedevelopment/dpm
   <li><input type="checkbox"> Package Version Support (Branches and Releases)</li>
   <li><input type="checkbox"> Beet and Bolt Support</li>
   <li><input type="checkbox"> TUI for manging packages</li>
+  <li><input type="checkbox"> Packages requiring other packages</li>
 </ul>
 
 <h2>Contributors</h2>
