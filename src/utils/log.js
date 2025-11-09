@@ -42,7 +42,6 @@ const log = {
 
   timeStart: (label = "default") => {
     timers.set(label, process.hrtime.bigint());
-    log.info(`Started '${label}'...`);
   },
 
   timeEnd: (label = "default", successMsg) => {

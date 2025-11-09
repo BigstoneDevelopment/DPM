@@ -1,6 +1,7 @@
+import path from 'path';
 import log from '../utils/log.js';
 import { findConfig } from '../utils/findConfig.js';
-import { build } from '../services/builder.js';
+import { DPMBuilder } from '../services/builder.js';
 
 export default {
     name: 'build',
@@ -9,7 +10,7 @@ export default {
     run: async () => {
         log.timeStart("build");
 
-        const projectDir = process.cwd();
+        let projectDir = process.cwd();
         const configPath = findConfig();
 
         if (!configPath) {
@@ -17,9 +18,11 @@ export default {
             log.info("Use dpm install to create dpm.json");
             process.exit(1);
         };
+        projectDir = path.dirname(configPath);
 
         log.info(`Building datapack in ${projectDir}`);
-        await build(projectDir, configPath);
+        const builder = new DPMBuilder(projectDir, true);
+        await builder.build();
         log.timeEnd("build", "Build complete");
         process.exit();
     }

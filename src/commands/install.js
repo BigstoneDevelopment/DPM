@@ -9,7 +9,7 @@ export default {
     alias: "i",
     description: "Install datapack packages.",
     run: async (packages = []) => {
-        const projectDir = process.cwd();
+        let projectDir = process.cwd();
         let configPath = findConfig();
 
         if (!configPath) {
@@ -23,6 +23,13 @@ export default {
                 datapackPath: "./src",
                 buildPath: "./build",
 
+                load: [
+                    "namespace:load"
+                ],
+                tick: [
+                    "namespace:tick"
+                ],
+
                 dependencies: []
             };
 
@@ -30,6 +37,7 @@ export default {
             log.success("Created template dpm.json");
             configPath = findConfig();
         };
+        projectDir = path.dirname(configPath);
 
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
         if (!Array.isArray(config.dependencies)) config.dependencies = [];

@@ -8,7 +8,7 @@ export default {
     alias: "u",
     description: "Uninstall datapack packages.",
     run: async (packages = []) => {
-        const projectDir = process.cwd();
+        let projectDir = process.cwd();
         const configPath = findConfig();
 
         if (!configPath) {
@@ -16,6 +16,7 @@ export default {
             log.info("Use 'dpm install' to create one first.");
             process.exit(1);
         };
+        projectDir = path.dirname(configPath);
 
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
         if (!Array.isArray(config.dependencies)) {

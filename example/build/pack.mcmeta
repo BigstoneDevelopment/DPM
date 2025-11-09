@@ -1,0 +1,37 @@
+{
+  "pack": {
+    "description": "DPM Example",
+    "pack_format": 80
+  },
+  "overlays": {
+    "entries": [
+      {
+        "directory": "base",
+        "min_format": 0,
+        "max_format": 9007199254740991,
+        "formats": {
+          "min_inclusive": 0,
+          "max_inclusive": 9007199254740991
+        }
+      },
+      {
+        "directory": "BigstoneDevelopment_DPM_example",
+        "min_format": 0,
+        "max_format": 9007199254740991,
+        "formats": {
+          "min_inclusive": 0,
+          "max_inclusive": 9007199254740991
+        }
+      },
+      {
+        "directory": "BigstoneDevelopment_DPM_example_legacy",
+        "min_format": 0,
+        "max_format": 9,
+        "formats": {
+          "min_inclusive": 0,
+          "max_inclusive": 9
+        }
+      }
+    ]
+  }
+}

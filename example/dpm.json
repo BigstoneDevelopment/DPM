@@ -4,7 +4,14 @@
 
   "datapackPath": "./src",
   "buildPath": "./build",
-  
+
+  "load": [
+    "namespace:load"
+  ],
+  "tick": [
+    "namespace:tick"
+  ],
+
   "dependencies": [
     "BigstoneDevelopment/DPM/example"
   ]

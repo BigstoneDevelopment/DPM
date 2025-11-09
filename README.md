@@ -50,10 +50,17 @@ npm i -g @bigstonedevelopment/dpm
 ```json
 {
   "name": "Folder Name",
-  "licensePath": "./LICENSE.txt", /* This is put in /Folder Name/LICENSE.txt */
+  "licensePath": "./LICENSE.txt", /* This is put in /Folder Name/LICENSES.txt */
 
   "datapackPath": "./src",
   "buildPath": "./build",
+
+  "load": [
+    "namespace:load"
+  ],
+  "tick": [
+    "namespace:tick"
+  ],
 
   "dependencies": [ /* dpm install will automatically add packages to this */
     "@user/repo",
