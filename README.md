@@ -101,12 +101,11 @@ npm i -g @bigstonedevelopment/dpm
 ```
 
 <h2>Planned Features</h2>
-<ul>
-  <li><input type="checkbox"> Package Version Support (Branches and Releases)</li>
-  <li><input type="checkbox"> Beet and Bolt Support</li>
-  <li><input type="checkbox"> TUI for manging packages</li>
-  <li><input type="checkbox"> Packages requiring other packages</li>
-</ul>
+
+- [ ] Package Version Support (Branches and Releases)
+- [ ] Beet and Bolt Support
+- [ ] TUI for manging packages
+- [ ] Packages requiring other packages
 
 <h2>Contributors</h2>
 <p>All contributions are welcome and if you join <a href="https://discord.bigstone.dev">our Discord</a> you can get the contributor role!</p>
