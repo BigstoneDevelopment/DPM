@@ -48,13 +48,14 @@ npm i -g @bigstonedevelopment/dpm
 
 <h3>Config file</h3>
 <p>For DPM to reconise your repo as a package you need a <code>dpm.json</code> file at the root ( / ) of your repo.</p>
-<pre lang="json">
+
+```json
 {
   "name": "Example Package",
   "description": "A example DPM package for a README!",
   "author": "BigstoneDevelopment",
   "licensePath": "./LICENSE.txt",
-
+  
   "supportedVersions": "10-27",
 
   "base": "./datapack",
@@ -72,7 +73,7 @@ npm i -g @bigstonedevelopment/dpm
     "namespace:tick",
   ]
 }
-</pre>
+```
 
 <h2>Contributors</h2>
 <p>All contributions are welcome and if you join <a href="https://discord.bigstone.dev">our Discord</a> you can get the contributor role!</p>
