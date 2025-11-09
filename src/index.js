@@ -1,24 +1,20 @@
-import { Command } from 'commander';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { Command } from "commander";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const program = new Command();
 
-const commandsDir = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsDir).filter(f => f.endsWith('.js'));
+const modules = import.meta.glob("./commands/*.js", { eager: true });
 
-for (const file of commandFiles) {
-    const { default: cmd } = await import(`./commands/${file}`);
-    if (!cmd) continue;
+for (const path in modules) {
+  const mod = modules[path];
+  const cmd = mod.default;
+  if (!cmd) continue;
 
-    const sub = program
-        .command(cmd.name)
-        .description(cmd.description)
-        .action(cmd.run);
+  const sub = program
+    .command(cmd.name)
+    .description(cmd.description)
+    .action(cmd.run);
 
-    if (cmd.alias) sub.alias(cmd.alias);
+  if (cmd.alias) sub.alias(cmd.alias);
 }
 
 program.parse(process.argv);

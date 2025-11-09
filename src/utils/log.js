@@ -34,12 +34,6 @@ const log = {
     }
   },
 
-  debug: (...msg) => {
-    if (process.env.DEBUG === "true" || process.argv.includes("--debug")) {
-      console.log(`${tag} ${pad} ${chalk.hex(colors.debug)(msg.join(" "))}`);
-    }
-  },
-
   timeStart: (label = "default") => {
     timers.set(label, process.hrtime.bigint());
   },
