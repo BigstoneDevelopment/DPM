@@ -1,0 +1,28 @@
+{
+  "name": "dpm",
+  "version": "1.0.0",
+  "description": "A Minecraft Datapack Package/Library manager.",
+  "keywords": [
+    "package",
+    "manager",
+    "library",
+    "datapack",
+    "minecraft",
+    "mcfunction"
+  ],
+  "homepage": "https://github.com/BigstoneDevelopment/DPM#readme",
+  "bugs": {
+    "url": "https://github.com/BigstoneDevelopment/DPM/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BigstoneDevelopment/DPM.git"
+  },
+  "license": "MIT",
+  "author": "Bigstone Development",
+  "type": "module",
+  "main": "/src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
