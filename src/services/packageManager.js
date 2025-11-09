@@ -18,7 +18,7 @@ export async function install(pkg, projectDir) {
 
         const repoUrl = `https://github.com/${user}/${repo}`;
         const zipUrl = `${repoUrl}/archive/refs/heads/${branch}.zip`;
-        const apiUrl = `https://raw.githubusercontent.com/${user}/${repo}/${branch}/dpm.json`;
+        const apiUrl = `https://raw.githubusercontent.com/${user}/${repo}/${branch}/dpm-package.json`;
 
         const modulesDir = path.join(projectDir, "dpm_modules");
         const pkgDir = path.join(modulesDir, `${user}_${repo}_${branch}`);
@@ -26,13 +26,13 @@ export async function install(pkg, projectDir) {
 
         const config = await fetchDpmConfig(apiUrl);
         if (!config) {
-            log.error(`${pkg} does not contain a valid dpm.json at the branch root.`);
+            log.error(`${pkg} does not contain a valid dpm-package.json at the branch root.`);
             log.debug(`Expected at: ${apiUrl}`);
             return;
         };
 
         if (!validateDpmConfig(config, pkg)) {
-            log.error(`Invalid dpm.json for ${pkg}`);
+            log.error(`Invalid dpm-package.json for ${pkg}`);
             return;
         };
 
@@ -51,7 +51,7 @@ export async function install(pkg, projectDir) {
             fs.renameSync(extractedDir, pkgDir);
         };
 
-        log.success(`Installed ${pkg} → ${pkgDir}`);
+        log.success(`Installed ${pkg} > ${pkgDir}`);
     } catch (err) {
         log.error(`Failed to install ${pkg}: ${err.message}`);
     };
