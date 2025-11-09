@@ -85,10 +85,10 @@ npm i -g @bigstonedevelopment/dpm
   },
 
   "load": [
-    "namespace:load",
+    "namespace:load"
   ],
   "tick": [
-    "namespace:tick",
+    "namespace:tick"
   ]
 }
 ```
