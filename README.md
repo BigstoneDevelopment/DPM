@@ -26,7 +26,12 @@
 <h2>What is DPM?</h2>
 <p>Datapack Package Manager (DPM) is a command line utility which manages datapack libraries/packages.</p>
 
-<h2>What are the commands?</h2>
+<h2>Installation</h2>
+<pre lang="bash">
+npm i -g @bigstonedevelopment/dpm
+</pre>
+
+<h2>Usage</h2>
 <ul>
     <h3>User Commands</h3>
     <li><code>dpm install @user/repo</code> - <strong>Install package</strong></li>
@@ -38,6 +43,36 @@
     <h3>Package Developer Commands</h3>
     <li><code>dpm package</code> - <strong>Create package</strong></li>
 </ul>
+
+<h2>Package Developers</h2>
+
+<h3>Config file</h3>
+<p>For DPM to reconise your repo as a package you need a <code>dpm.json</code> file at the root ( / ) of your repo.</p>
+<pre lang="json">
+{
+  "name": "Example Package",
+  "description": "A example DPM package for a README!",
+  "author": "BigstoneDevelopment",
+  "licensePath": "./LICENSE.txt",
+
+  "supportedVersions": "10-27",
+
+  "base": "./datapack",
+  "overlays": {
+    "<10": "./overlays/legacy",
+    "10-15": "./overlays/1.16",
+    "26": "./overlays/1.21",
+    ">=27": "./overlays/future"
+  },
+
+  "load": [
+    "namespace:load",
+  ],
+  "tick": [
+    "namespace:tick",
+  ]
+}
+</pre>
 
 <h2>Contributors</h2>
 <p>All contributions are welcome and if you join <a href="https://discord.bigstone.dev">our Discord</a> you can get the contributor role!</p>
