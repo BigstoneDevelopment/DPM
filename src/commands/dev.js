@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import log from '../utils/log.js';
 import { findConfig } from '../utils/findConfig.js';
@@ -19,11 +20,14 @@ export default {
         };
         projectDir = path.dirname(configPath);
 
-        log.info(`Watching datapack in ${projectDir}`);
-        watcher(projectDir, async (filename, eventType) => {
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        const buildFolder = path.resolve(projectDir, config.buildPath || "./build");
+        const tempFolder = path.resolve(projectDir, "__dpm_temp");
+
+        watcher(projectDir, buildFolder, tempFolder, async (filename, eventType) => {
             const builder = new DPMBuilder(projectDir, false);
             await builder.build();
-            console.log(`[HOTRELOAD] ${eventType} → ${filename}`);
+            log.success(`[HOTRELOAD] ${eventType} → ${filename}`);
         });
     }
 };

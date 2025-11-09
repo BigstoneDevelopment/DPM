@@ -1,1 +1,1 @@
-say hi
+say whats up
