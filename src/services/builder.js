@@ -127,7 +127,7 @@ export class DPMBuilder {
             this.dataPaths.push(depDataPath);
 
             this.overlays.push({
-                range: "*",
+                range: depConfig.supportedVersions || "*",
                 directory: depName
             });
 
