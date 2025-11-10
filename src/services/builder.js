@@ -325,16 +325,21 @@ Under MIT License`
     };
 
     async build() {
-        this.loadConfig();
-        this.resetTemp();
-        this.copyProjectBase();
+        try {
+            this.loadConfig();
+            this.resetTemp();
+            this.copyProjectBase();
 
-        const licenseTexts = this.mergeDependencies();
-        this.mergePackMetaOverlays(this.mcMeta);
-        this.createLoadTickFunctions();
+            const licenseTexts = this.mergeDependencies();
+            this.mergePackMetaOverlays(this.mcMeta);
+            this.createLoadTickFunctions();
 
-        this.generateDummyFiles(this.dataPaths);
-        this.writeFinalBuild(licenseTexts);
-        this.cleanup();
+            this.generateDummyFiles(this.dataPaths);
+            this.writeFinalBuild(licenseTexts);
+            this.cleanup();
+        } catch(e) {
+            log.warning("Removing temp files..");
+            if (fs.existsSync(this.tempDir)) fs.rmdirSync(this.tempDir, { recursive: true, force: true });
+        };
     };
 };

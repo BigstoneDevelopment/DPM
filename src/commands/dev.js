@@ -23,8 +23,9 @@ export default {
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
         const buildFolder = path.resolve(projectDir, config.buildPath || "./build");
         const tempFolder = path.resolve(projectDir, "__dpm_temp");
+        const modulesFolder = path.resolve(projectDir, "dpm_modules");
 
-        watcher(projectDir, buildFolder, tempFolder, async (filename, eventType) => {
+        watcher(projectDir, buildFolder, tempFolder, modulesFolder, async (filename, eventType) => {
             const builder = new DPMBuilder(projectDir, false);
             await builder.build();
             log.success(`[HOTRELOAD] ${eventType} → ${filename}`);

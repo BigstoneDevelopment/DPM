@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import log from "../utils/log.js";
 
-export function watcher(targetPath, buildFolder, tempFolder, onChange) {
+export function watcher(targetPath, buildFolder, tempFolder, modulesFolder, onChange) {
     if (!fs.existsSync(targetPath)) {
         log.error(`Watcher: Path not found, ${targetPath}`);
         return;
@@ -11,6 +11,7 @@ export function watcher(targetPath, buildFolder, tempFolder, onChange) {
     const absTarget = path.resolve(targetPath);
     const absBuild = path.resolve(buildFolder);
     const absTemp = path.resolve(tempFolder);
+    const absModules = path.resolve(modulesFolder);
 
     log.info(`Watching for changes in ${targetPath}...`);
 
@@ -18,6 +19,11 @@ export function watcher(targetPath, buildFolder, tempFolder, onChange) {
         if (!filename) return;
 
         const absFile = path.resolve(absTarget, filename);
+
+        if (absFile.startsWith(absModules)) {
+            log.debug(`Ignoring change in modules folder: ${filename}`);
+            return;
+        };
 
         if (absFile.startsWith(absTemp)) {
             log.debug(`Ignoring change in temp folder: ${filename}`);

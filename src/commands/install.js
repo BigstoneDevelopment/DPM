@@ -54,11 +54,19 @@ export default {
             log.info(`Installing ${targets.length} package(s) from dpm.json...`);
         } else {
             targets = packages;
-            
+
             let warningShown = false;
             for (const pkg of packages) {
                 if (!config.dependencies.includes(pkg)) {
-                    config.dependencies.push(pkg);
+                    const parts = pkg.replace(/^@/, "").split("/");
+                    const [user, repo, branch = "main"] = parts;
+
+                    if (!user || !repo) {
+                        log.error(`Invalid package format: ${pkg}`);
+                        continue;
+                    };
+
+                    config.dependencies.push(`${user}/${repo}/${branch}`);
                 } else {
                     log.warn(`Already found package in dpm.json: ${pkg}`)
                     warningShown = true;
