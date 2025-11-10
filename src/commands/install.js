@@ -33,7 +33,7 @@ export default {
                 dependencies: []
             };
 
-            fs.writeFileSync(newConfigPath, JSON.stringify(exampleConfig, null, 2));
+            fs.writeFileSync(newConfigPath, JSON.stringify(exampleConfig, null, 4));
             log.success("Created template dpm.json");
             configPath = findConfig();
         };
@@ -65,7 +65,7 @@ export default {
                 };
             };
 
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
             if (warningShown) log.line();
             log.success("Updated dependencies in dpm.json");
         };

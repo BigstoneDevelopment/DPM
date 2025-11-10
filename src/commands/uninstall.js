@@ -36,7 +36,7 @@ export default {
         );
         const removedCount = beforeCount - config.dependencies.length;
 
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
 
         if (removedCount > 0) {
             log.success(`Removed ${removedCount} package(s) from dpm.json`);

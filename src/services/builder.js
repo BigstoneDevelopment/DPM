@@ -254,12 +254,12 @@ ${licenseText}`;
 
         fs.writeFileSync(loadTagPath, JSON.stringify({
             values: this.loadFunctions
-        }, null, 2));
+        }, null, 4));
 
         fs.writeFileSync(tickTagPath, JSON.stringify({
             replace: false,
             values: this.tickFunctions
-        }, null, 2));
+        }, null, 4));
     };
 
     generateDummyFiles(dataPaths) {
@@ -317,7 +317,7 @@ Under MIT License`
         fs.writeFileSync(path.join(this.buildDir, "LICENSES.txt"), finalLicense, "utf8");
 
         copyRecursive(this.tempDir, this.buildDir);
-        fs.writeFileSync(path.join(this.buildDir, "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 2));
+        fs.writeFileSync(path.join(this.buildDir, "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 4));
     };
 
     cleanup() {

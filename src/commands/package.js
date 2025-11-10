@@ -9,9 +9,8 @@ export default {
     run: async () => {
         const projectDir = process.cwd();
 
-        const overlayDir = path.join(projectDir, "overlays", "example");
-        const datapackDir = path.join(projectDir, "datapack", "data");
-        const mcmetaPath = path.join(projectDir, "datapack", "pack.mcmeta");
+        const overlayDir = path.join(projectDir, "overlays", "example", "namespace", "function");
+        const datapackDir = path.join(projectDir, "datapack", "namespace", "function");
         const configPath = path.join(projectDir, "dpm_package.json");
 
         const dirs = [overlayDir, datapackDir];
@@ -20,17 +19,6 @@ export default {
                 fs.mkdirSync(dir, { recursive: true });
                 log.info(`Created folder: ${dir.replace(projectDir + "/", "")}`);
             };
-        };
-
-        if (!fs.existsSync(mcmetaPath)) {
-            const mcmeta = {
-                pack: {
-                    pack_format: 88,
-                    description: "Example package"
-                }
-            };
-            fs.writeFileSync(mcmetaPath, JSON.stringify(mcmeta, null, 2));
-            log.success("Created datapack/pack.mcmeta");
         };
 
         if (fs.existsSync(configPath)) {
@@ -62,7 +50,7 @@ export default {
             ]
         };
 
-        fs.writeFileSync(configPath, JSON.stringify(pkgConfig, null, 2));
+        fs.writeFileSync(configPath, JSON.stringify(pkgConfig, null, 4));
         log.success("Created dpm_package.json template.");
 
         log.line();
