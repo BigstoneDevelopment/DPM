@@ -4,7 +4,7 @@ import log from "../utils/log.js";
 
 export default {
     name: "info",
-    description: "See project info.",
+    description: "See DPM info.",
     run: async () => {
         log.line();
 
