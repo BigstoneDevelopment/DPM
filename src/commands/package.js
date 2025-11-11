@@ -11,7 +11,7 @@ export default {
 
         const overlayDir = path.join(projectDir, "overlays", "example", "namespace", "function");
         const datapackDir = path.join(projectDir, "datapack", "namespace", "function");
-        const configPath = path.join(projectDir, "dpm_package.json");
+        const configPath = path.join(projectDir, "dpm-package.json");
 
         const dirs = [overlayDir, datapackDir];
         for (const dir of dirs) {
@@ -51,7 +51,7 @@ export default {
         };
 
         fs.writeFileSync(configPath, JSON.stringify(pkgConfig, null, 4));
-        log.success("Created dpm_package.json template.");
+        log.success("Created dpm-package.json template.");
 
         log.line();
         log.success("Package structure created successfully!");
