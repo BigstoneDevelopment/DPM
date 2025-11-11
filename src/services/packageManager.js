@@ -9,7 +9,8 @@ import { validateDpmConfig } from "../utils/validateDPMConfig.js";
 export async function install(pkg, projectDir) {
     try {
         const parts = pkg.replace(/^@/, "").split("/");
-        const [user, repo, branch = "main"] = parts;
+        let [user, repo, branch = "main"] = parts;
+        if (branch == "") branch = "main";
 
         if (!user || !repo) {
             log.error(`Invalid package format: ${pkg}`);
@@ -66,7 +67,8 @@ export async function install(pkg, projectDir) {
 
 export async function uninstall(pkg, projectDir) {
     const parts = pkg.replace(/^@/, "").split("/");
-    const [user, repo, branch = "main"] = parts;
+    let [user, repo, branch = "main"] = parts;
+    if (branch == "") branch = "main";
 
     const pkgDir = path.join(projectDir, "dpm_modules", `${user}_${repo}_${branch}`);
 

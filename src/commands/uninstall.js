@@ -30,11 +30,26 @@ export default {
             return;
         };
 
+        for (const pkg of packages) {
+            const parts = pkg.replace(/^@/, "").split("/");
+            let [user, repo, branch = "main"] = parts;
+            if (branch == "") branch = "main";
+
+            if (!user || !repo) {
+                log.error(`Invalid package format: ${pkg}`);
+                continue;
+            };
+
+            packages[packages.indexOf(pkg)] = `${user}/${repo}/${branch}`;
+        };
+
         const beforeCount = config.dependencies.length;
         config.dependencies = config.dependencies.filter(
             (dep) => !packages.includes(dep)
         );
         const removedCount = beforeCount - config.dependencies.length;
+
+        if (config.dependencies.length < 1) delete config.dependencies;
 
         fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
 
@@ -52,6 +67,11 @@ export default {
                 fs.rmSync(pkgPath, { recursive: true, force: true });
                 log.info(`Deleted local files for ${pkg}`);
             }
+        };
+
+        const modulesDir = path.join(projectDir, "dpm_modules");
+        if (fs.readdirSync(modulesDir).length === 0) {
+            fs.rmdirSync(modulesDir, { force: true, recursive: true });
         };
 
         log.line();

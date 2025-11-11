@@ -59,7 +59,8 @@ export default {
             for (const pkg of packages) {
                 if (!config.dependencies.includes(pkg)) {
                     const parts = pkg.replace(/^@/, "").split("/");
-                    const [user, repo, branch = "main"] = parts;
+                    let [user, repo, branch = "main"] = parts;
+                    if (branch == "") branch = "main";
 
                     if (!user || !repo) {
                         log.error(`Invalid package format: ${pkg}`);

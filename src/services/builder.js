@@ -104,7 +104,18 @@ ${licenseText}`;
 
         if (this.logs) log.info(`Merging ${deps.length} dependencies...`);
 
-        for (const dep of deps) {
+        for (const depOrig of deps) {
+            const parts = depOrig.replace(/^@/, "").split("/");
+            let [user, repo, branch = "main"] = parts;
+            if (branch == "") branch = "main";
+
+            if (!user || !repo) {
+                log.error(`Invalid package format: ${depOrig}`);
+                continue;
+            };
+
+            const dep = `${user}/${repo}/${branch}`;
+
             const depName = dep.replace(/[^\w.-]/g, "_");
             const depPath = path.join(this.modulesDir, depName);
 
@@ -168,7 +179,9 @@ ${licenseText}`;
             const licensePath = path.resolve(depPath, depConfig.licensePath || "./LICENSE.txt");
             if (fs.existsSync(licensePath)) {
                 const parts = dep.replace(/^@/, "").split("/");
-                const [user, repo, branch = "main"] = parts;
+                let [user, repo, branch = "main"] = parts;
+                if (branch == "") branch = "main";
+                
                 const repoUrl = `https://github.com/${user}/${repo}/tree/${branch}/`;
 
                 const licenseText = fs.readFileSync(licensePath, "utf8");
@@ -197,9 +210,10 @@ ${licenseText}`;
         if (!finalMeta.overlays) finalMeta.overlays = {};
         if (!finalMeta.overlays.entries) finalMeta.overlays.entries = [];
 
+        const MAX_SAFE_INTEGER = 999999;
         const entries = this.overlays.map(({ range, directory }) => {
             let minFormat = 0;
-            let maxFormat = Number.MAX_SAFE_INTEGER; // default upper bound
+            let maxFormat = MAX_SAFE_INTEGER; // default upper bound
             let formats = {};
 
             if (range.startsWith("<=")) {
@@ -210,17 +224,17 @@ ${licenseText}`;
                 formats = { min_inclusive: 0, max_inclusive: maxFormat };
             } else if (range.startsWith(">=")) {
                 minFormat = parseInt(range.slice(2));
-                formats = { min_inclusive: minFormat, max_inclusive: Number.MAX_SAFE_INTEGER };
+                formats = { min_inclusive: minFormat, max_inclusive: MAX_SAFE_INTEGER };
             } else if (range.startsWith(">")) {
                 minFormat = parseInt(range.slice(1)) + 1;
-                formats = { min_inclusive: minFormat, max_inclusive: Number.MAX_SAFE_INTEGER };
+                formats = { min_inclusive: minFormat, max_inclusive: MAX_SAFE_INTEGER };
             } else if (range.includes("-")) {
                 const [min, max] = range.split("-").map(Number);
                 minFormat = min;
                 maxFormat = max;
                 formats = { min_inclusive: min, max_inclusive: max };
             } else if (range == "*") {
-                formats = { min_inclusive: 0, max_inclusive: Number.MAX_SAFE_INTEGER };
+                formats = { min_inclusive: 0, max_inclusive: MAX_SAFE_INTEGER };
             } else {
                 const format = parseInt(range);
                 minFormat = maxFormat = format;
