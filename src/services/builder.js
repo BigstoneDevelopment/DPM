@@ -350,7 +350,7 @@ Under MIT License`
             this.writeFinalBuild(licenseTexts);
             this.cleanup();
         } catch (e) {
-            log.warning("Removing temp files..");
+            log.warn("Removing temp files..");
             if (fs.existsSync(this.tempDir)) fs.rmdirSync(this.tempDir, { recursive: true, force: true });
         };
     };
