@@ -13,6 +13,7 @@ export class DPMBuilder {
         this.modulesDir = path.join(projectDir, "dpm_modules");
         this.tempDir = path.join(projectDir, "__dpm_temp");
 
+        this.licenseTexts = [];
         this.dataPaths = [];
         this.tickFunctions = [];
         this.loadFunctions = [];
@@ -82,6 +83,7 @@ export class DPMBuilder {
 
         const licensePath = path.resolve(this.projectDir, this.config.licensePath || "./LICENSE.txt");
         if (fs.existsSync(licensePath)) {
+            const licenseText = fs.readFileSync(licensePath, "utf8");
             const detailedText = `
          
 
@@ -89,7 +91,7 @@ export class DPMBuilder {
 ----- [From Datapack] -----
 
 ${licenseText}`;
-            licenseTexts.push(detailedText);
+            this.licenseTexts.push(detailedText);
         };
     };
 
@@ -101,8 +103,6 @@ ${licenseText}`;
         }
 
         if (this.logs) log.info(`Merging ${deps.length} dependencies...`);
-
-        let licenseTexts = [];
 
         for (const dep of deps) {
             const depName = dep.replace(/[^\w.-]/g, "_");
@@ -179,11 +179,9 @@ ${licenseText}`;
 ----- [${dep}] ( ${repoUrl} ) -----
 
 ${licenseText}`;
-                licenseTexts.push(detailedText);
-            }
-        }
-
-        return licenseTexts;
+                this.licenseTexts.push(detailedText);
+            };
+        };
     };
 
     mergePackMetaOverlays() {
@@ -342,14 +340,15 @@ Under MIT License`
             this.resetTemp();
             this.copyProjectBase();
 
-            const licenseTexts = this.mergeDependencies();
+            this.mergeDependencies();
             this.mergePackMetaOverlays(this.mcMeta);
             this.createLoadTickFunctions();
 
             this.generateDummyFiles(this.dataPaths);
-            this.writeFinalBuild(licenseTexts);
+            this.writeFinalBuild(this.licenseTexts);
             this.cleanup();
         } catch (e) {
+            log.error(e);
             log.warn("Removing temp files..");
             if (fs.existsSync(this.tempDir)) fs.rmdirSync(this.tempDir, { recursive: true, force: true });
         };
