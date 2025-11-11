@@ -79,6 +79,18 @@ export class DPMBuilder {
             ...this.loadFunctions,
             ...this.config.load
         ];
+
+        const licensePath = path.resolve(this.projectDir, this.config.licensePath || "./LICENSE.txt");
+        if (fs.existsSync(licensePath)) {
+            const detailedText = `
+         
+
+
+----- [From Datapack] -----
+
+${licenseText}`;
+            licenseTexts.push(detailedText);
+        };
     };
 
     mergeDependencies() {
@@ -187,7 +199,7 @@ ${licenseText}`;
         if (!finalMeta.overlays) finalMeta.overlays = {};
         if (!finalMeta.overlays.entries) finalMeta.overlays.entries = [];
 
-        const entries = this.overlays.map(({range, directory}) => {
+        const entries = this.overlays.map(({ range, directory }) => {
             let minFormat = 0;
             let maxFormat = Number.MAX_SAFE_INTEGER; // default upper bound
             let formats = {};
@@ -337,7 +349,7 @@ Under MIT License`
             this.generateDummyFiles(this.dataPaths);
             this.writeFinalBuild(licenseTexts);
             this.cleanup();
-        } catch(e) {
+        } catch (e) {
             log.warning("Removing temp files..");
             if (fs.existsSync(this.tempDir)) fs.rmdirSync(this.tempDir, { recursive: true, force: true });
         };
