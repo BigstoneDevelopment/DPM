@@ -1,8 +1,10 @@
+import { promises as fsp } from "fs";
 import fs from "fs";
 import path from "path";
 
 import log from "../utils/log.js";
 import { copyRecursive } from "../utils/copyRecursive.js";
+import { exists } from "../utils/exists.js";
 
 export class DPMBuilder {
     constructor(projectDir = process.cwd(), logs = true) {
@@ -11,7 +13,6 @@ export class DPMBuilder {
 
         this.configPath = path.join(projectDir, "dpm.json");
         this.modulesDir = path.join(projectDir, "dpm_modules");
-        this.tempDir = path.join(projectDir, "__dpm_temp");
 
         this.licenseTexts = [];
         this.dataPaths = [];
@@ -39,18 +40,18 @@ export class DPMBuilder {
         this.datapackSrc = path.resolve(this.projectDir, this.config.datapackPath || "./src");
     };
 
-    resetTemp() {
-        if (fs.existsSync(this.tempDir)) fs.rmSync(this.tempDir, { recursive: true, force: true });
-        fs.mkdirSync(this.tempDir, { recursive: true });
+    async resetBuild() {
+        if (fs.existsSync(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
+        fs.mkdirSync(this.buildDir, { recursive: true });
     };
 
 
-    copyProjectBase() {
+    async copyProjectBase() {
         if (this.logs) log.info("Copying project datapack...");
-        copyRecursive(this.datapackSrc, this.tempDir);
+        await copyRecursive(this.datapackSrc, this.buildDir);
 
-        const dataPath = path.join(this.tempDir, "data");
-        const basePath = path.join(this.tempDir, "base");
+        const dataPath = path.join(this.buildDir, "data");
+        const basePath = path.join(this.buildDir, "base");
         const newDataPath = path.join(basePath, "data");
 
         if (fs.existsSync(dataPath)) {
@@ -66,7 +67,7 @@ export class DPMBuilder {
             directory: "base"
         })
 
-        const metaPath = path.join(this.tempDir, "pack.mcmeta");
+        const metaPath = path.join(this.buildDir, "pack.mcmeta");
         const meta = fs.readFileSync(metaPath);
         if (meta) this.mcMeta = meta;
         else throw new Error("Pack.mcmeta not found");
@@ -95,7 +96,7 @@ ${licenseText}`;
         };
     };
 
-    mergeDependencies() {
+    async mergeDependencies() {
         const deps = this.config.dependencies || [];
         if (deps.length === 0) {
             if (this.logs) log.warn("No dependencies found in dpm.json.");
@@ -104,7 +105,7 @@ ${licenseText}`;
 
         if (this.logs) log.info(`Merging ${deps.length} dependencies...`);
 
-        for (const depOrig of deps) {
+        for await (const depOrig of deps) {
             const parts = depOrig.replace(/^@/, "").split("/");
             let [user, repo, branch = "main"] = parts;
             if (branch == "") branch = "main";
@@ -143,10 +144,10 @@ ${licenseText}`;
             ];
 
             const depBase = path.join(depPath, depConfig.base || "./datapack");
-            const depTempPath = path.join(this.tempDir, depName);
-            const depDataPath = path.join(depTempPath, "data");
-            fs.mkdirSync(depTempPath);
-            copyRecursive(depBase, depDataPath);
+            const depBuildPath = path.join(this.buildDir, depName);
+            const depDataPath = path.join(depBuildPath, "data");
+            fs.mkdirSync(depBuildPath);
+            await copyRecursive(depBase, depDataPath);
             this.dataPaths.push(depDataPath);
 
             this.overlays.push({
@@ -155,14 +156,14 @@ ${licenseText}`;
             });
 
             if (depConfig.overlays) {
-                for (const [key, overlayPath] of Object.entries(depConfig.overlays)) {
+                for await (const [key, overlayPath] of Object.entries(depConfig.overlays)) {
                     const folderName = path.basename(path.join(depPath, overlayPath));
                     const destName = `${depName}_${folderName.replace(/\W+/g, "_")}`;
                     const overlaySrc = path.join(depPath, overlayPath);
-                    const outPath = path.join(this.tempDir, destName);
+                    const outPath = path.join(this.buildDir, destName);
                     const outDataPath = path.join(outPath, "data");
                     fs.mkdirSync(outPath);
-                    copyRecursive(overlaySrc, outDataPath);
+                    await copyRecursive(overlaySrc, outDataPath);
                     this.dataPaths.push(outDataPath);
                 };
 
@@ -181,7 +182,7 @@ ${licenseText}`;
                 const parts = dep.replace(/^@/, "").split("/");
                 let [user, repo, branch = "main"] = parts;
                 if (branch == "") branch = "main";
-                
+
                 const repoUrl = `https://github.com/${user}/${repo}/tree/${branch}/`;
 
                 const licenseText = fs.readFileSync(licensePath, "utf8");
@@ -200,7 +201,7 @@ ${licenseText}`;
     mergePackMetaOverlays() {
         if (this.logs) log.info("Merging pack.mcmeta overlays...");
 
-        const packMetaPath = path.join(this.tempDir, "pack.mcmeta");
+        const packMetaPath = path.join(this.buildDir, "pack.mcmeta");
         let finalMeta = {};
         if (fs.existsSync(packMetaPath)) {
             finalMeta = JSON.parse(fs.readFileSync(packMetaPath, "utf8"));
@@ -257,19 +258,19 @@ ${licenseText}`;
         this.mcMeta = finalMeta;
     };
 
-    createLoadTickFunctions() {
+    async createLoadTickFunctions() {
         // delete existing
         for (const dataPath of this.dataPaths) {
             const tagFunctionPath = path.join(dataPath, "minecraft", "tags", "function");
             const loadTagPath = path.join(tagFunctionPath, "load.json");
             const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
-            if (fs.existsSync(loadTagPath)) fs.rmSync(loadTagPath);
-            if (fs.existsSync(tickTagPath)) fs.rmSync(tickTagPath);
+            if (fs.existsSync(loadTagPath)) await fsp.rm(loadTagPath);
+            if (fs.existsSync(tickTagPath)) await fsp.rm(tickTagPath);
         };
 
         // create new
-        const tagFunctionPath = path.join(this.tempDir, "data", "minecraft", "tags", "function");
+        const tagFunctionPath = path.join(this.buildDir, "data", "minecraft", "tags", "function");
         const loadTagPath = path.join(tagFunctionPath, "load.json");
         const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
@@ -286,7 +287,7 @@ ${licenseText}`;
         }, null, 4));
     };
 
-    generateDummyFiles(dataPaths) {
+    async generateDummyFiles(dataPaths) {
         const creditHeader = `# 
 # Generated by DPM — https://github.com/BigstoneDevelopment/DPM
 # 
@@ -294,37 +295,38 @@ ${licenseText}`;
 # Copyright (c) 2025 Bigstone Development
 # Under MIT License
 # `;
-        const targetDataDir = path.join(this.tempDir, "data");
+        const targetDataDir = path.join(this.buildDir, "data");
+
+        const tasks = [];
 
         for (const sourcePath of dataPaths) {
-            if (!fs.existsSync(sourcePath)) continue;
+            if (!await exists(sourcePath)) continue;
             log.debug(`Overlay: scanning ${sourcePath}`);
+            tasks.push(this.copyDummyRecursive(sourcePath, targetDataDir, creditHeader));
+        };
 
-            const walk = (currentSrc, currentDest) => {
-                const entries = fs.readdirSync(currentSrc, { withFileTypes: true });
-
-                for (const entry of entries) {
-                    const srcFull = path.join(currentSrc, entry.name);
-                    const destFull = path.join(currentDest, entry.name);
-
-                    if (entry.isDirectory()) {
-                        fs.mkdirSync(destFull, { recursive: true });
-                        walk(srcFull, destFull);
-                    } else {
-                        fs.mkdirSync(path.dirname(destFull), { recursive: true });
-                        fs.writeFileSync(destFull, creditHeader, "utf8");
-                    }
-                }
-            };
-
-            walk(sourcePath, targetDataDir);
-        }
+        await Promise.all(tasks);
     };
 
-    writeFinalBuild(licenses) {
+    async copyDummyRecursive(src, dest, content) {
+        const entries = await fsp.readdir(src, { withFileTypes: true });
+        await Promise.all(entries.map(async entry => {
+            const srcFull = path.join(src, entry.name);
+            const destFull = path.join(dest, entry.name);
+            if (entry.isDirectory()) {
+                await fsp.mkdir(destFull, { recursive: true });
+                return this.copyDummyRecursive(srcFull, destFull, content);
+            } else {
+                await fsp.mkdir(path.dirname(destFull), { recursive: true });
+                return fsp.writeFile(destFull, content, "utf8");
+            };
+        }));
+    };
+
+    async writeFinalBuild(licenses) {
         if (this.logs) log.info("Writing final build...");
 
-        if (fs.existsSync(this.buildDir)) fs.rmSync(this.buildDir, { recursive: true, force: true });
+        if (fs.existsSync(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
         fs.mkdirSync(this.buildDir, { recursive: true });
 
         const creditHeader = `Generated by DPM — https://github.com/BigstoneDevelopment/DPM
@@ -339,32 +341,29 @@ Under MIT License`
         ].join();
 
         fs.writeFileSync(path.join(this.buildDir, "LICENSES.txt"), finalLicense, "utf8");
-
-        copyRecursive(this.tempDir, this.buildDir);
         fs.writeFileSync(path.join(this.buildDir, "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 4));
     };
 
-    cleanup() {
-        if (fs.existsSync(this.tempDir)) fs.rmSync(this.tempDir, { recursive: true, force: true });
+    async cleanup() {
+        if (fs.existsSync(this.buildDir)) await fsp.rmSync(this.buildDir, { recursive: true, force: true });
     };
 
     async build() {
         try {
             this.loadConfig();
-            this.resetTemp();
-            this.copyProjectBase();
+            await this.resetBuild();
+            await this.copyProjectBase();
 
-            this.mergeDependencies();
+            await this.mergeDependencies();
             this.mergePackMetaOverlays(this.mcMeta);
             this.createLoadTickFunctions();
 
-            this.generateDummyFiles(this.dataPaths);
-            this.writeFinalBuild(this.licenseTexts);
-            this.cleanup();
+            await this.generateDummyFiles(this.dataPaths);
+            await this.writeFinalBuild(this.licenseTexts);
         } catch (e) {
             log.error(e);
-            log.warn("Removing temp files..");
-            if (fs.existsSync(this.tempDir)) fs.rmdirSync(this.tempDir, { recursive: true, force: true });
+            log.warn("Removing build files..");
+            await cleanup();
         };
     };
 };
