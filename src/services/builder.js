@@ -250,8 +250,8 @@ ${licenseText}`;
         });
 
         finalMeta.overlays.entries = [
-            ...finalMeta.overlays.entries,
-            ...entries
+            ...entries,
+            ...finalMeta.overlays.entries
         ];
 
         this.mcMeta = finalMeta;
