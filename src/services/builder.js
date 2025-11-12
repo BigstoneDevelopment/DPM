@@ -56,7 +56,7 @@ export class DPMBuilder {
         const newDataPath = path.join(basePath, "data");
 
         if (await exists(dataPath)) {
-            if (await exists(basePath)) fs.rmdirSync(basePath, { recursive: true, force: true });
+            if (await exists(basePath)) await fsp.rmdir(basePath, { recursive: true, force: true });
             await fsp.mkdir(basePath, { recursive: true });
             fs.renameSync(dataPath, newDataPath);
             this.dataPaths.push(newDataPath);
@@ -354,7 +354,7 @@ Under MIT License`
     };
 
     async cleanup() {
-        if (await exists(this.buildDir)) await fsp.rmSync(this.buildDir, { recursive: true, force: true });
+        if (await exists(this.buildDir)) await fsp.rmdir(this.buildDir, { recursive: true, force: true });
     };
 
     async build() {
@@ -371,9 +371,8 @@ Under MIT License`
             await this.writeFinalBuild(this.licenseTexts);
         } catch (e) {
             log.error(e);
-            console.log(e)
             log.warn("Removing build files..");
-            await cleanup();
+            await this.cleanup();
         };
     };
 };
