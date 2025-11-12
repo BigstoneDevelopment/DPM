@@ -5,6 +5,7 @@ import path from "path";
 import log from "../utils/log.js";
 import { copyRecursive } from "../utils/copyRecursive.js";
 import { exists } from "../utils/exists.js";
+import { readJSONCached } from "../utils/readJSONCached.js";
 
 export class DPMBuilder {
     constructor(projectDir = process.cwd(), logs = true) {
@@ -30,19 +31,19 @@ export class DPMBuilder {
         return result;
     };
 
-    loadConfig() {
-        if (!fs.existsSync(this.configPath)) {
+    async loadConfig() {
+        if (!await exists(this.configPath)) {
             log.error("No dpm.json found in", this.projectDir);
             process.exit(1);
         }
-        this.config = JSON.parse(fs.readFileSync(this.configPath, "utf8"));
+        this.config = await readJSONCached(this.configPath, "utf8");
         this.buildDir = path.resolve(this.projectDir, this.config.buildPath || "./build");
         this.datapackSrc = path.resolve(this.projectDir, this.config.datapackPath || "./src");
     };
 
     async resetBuild() {
-        if (fs.existsSync(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
-        fs.mkdirSync(this.buildDir, { recursive: true });
+        if (await exists(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
+        await fsp.mkdir(this.buildDir, { recursive: true });
     };
 
 
@@ -54,9 +55,9 @@ export class DPMBuilder {
         const basePath = path.join(this.buildDir, "base");
         const newDataPath = path.join(basePath, "data");
 
-        if (fs.existsSync(dataPath)) {
-            if (fs.existsSync(basePath)) fs.rmdirSync(basePath, { recursive: true, force: true });
-            fs.mkdirSync(basePath);
+        if (await exists(dataPath)) {
+            if (await exists(basePath)) fs.rmdirSync(basePath, { recursive: true, force: true });
+            await fsp.mkdir(basePath, { recursive: true });
             fs.renameSync(dataPath, newDataPath);
             this.dataPaths.push(newDataPath);
             if (this.logs) log.debug("Moved /data > /base/data");
@@ -83,7 +84,7 @@ export class DPMBuilder {
         ];
 
         const licensePath = path.resolve(this.projectDir, this.config.licensePath || "./LICENSE.txt");
-        if (fs.existsSync(licensePath)) {
+        if (await exists(licensePath)) {
             const licenseText = fs.readFileSync(licensePath, "utf8");
             const detailedText = `
          
@@ -105,106 +106,114 @@ ${licenseText}`;
 
         if (this.logs) log.info(`Merging ${deps.length} dependencies...`);
 
-        for await (const depOrig of deps) {
-            const parts = depOrig.replace(/^@/, "").split("/");
+        await Promise.all(deps.map(depOrig => this.processDependency(depOrig)));
+    };
+
+    async processDependency(depOrig) {
+        const parts = depOrig.replace(/^@/, "").split("/");
+        let [user, repo, branch = "main"] = parts;
+        if (branch == "") branch = "main";
+
+        if (!user || !repo) {
+            log.error(`Invalid package format: ${depOrig}`);
+            return;
+        };
+
+        const dep = `${user}/${repo}/${branch}`;
+
+        const depName = dep.replace(/[^\w.-]/g, "_");
+        const depPath = path.join(this.modulesDir, depName);
+
+        if (!await exists(depPath)) {
+            log.warn(`Dependency not found: ${dep}`);
+            return;
+        }
+
+        const depConfigPath = path.join(depPath, "dpm-package.json");
+        if (!await exists(depConfigPath)) {
+            log.warn(`Invalid DPM package (missing dpm-package.json): ${dep}`);
+            return;
+        }
+
+        const depConfig = await readJSONCached(depConfigPath, "utf8");
+
+        if (depConfig.tick) this.tickFunctions = [
+            ...this.tickFunctions,
+            ...depConfig.tick
+        ];
+
+        if (depConfig.load) this.loadFunctions = [
+            ...this.loadFunctions,
+            ...depConfig.load
+        ];
+
+        const depBase = path.join(depPath, depConfig.base || "./datapack");
+        const depBuildPath = path.join(this.buildDir, depName);
+        const depDataPath = path.join(depBuildPath, "data");
+
+        await fsp.mkdir(depBuildPath, { recursive: true });
+        await copyRecursive(depBase, depDataPath);
+        
+        this.dataPaths.push(depDataPath);
+
+        this.overlays.push({
+            range: depConfig.supportedVersions || "*",
+            directory: depName
+        });
+
+        if (depConfig.overlays) {
+            for await (const [key, overlayPath] of Object.entries(depConfig.overlays)) {
+                const folderName = path.basename(path.join(depPath, overlayPath));
+                const destName = `${depName}_${folderName.replace(/\W+/g, "_")}`;
+
+                const overlaySrc = path.join(depPath, overlayPath);
+                const outPath = path.join(this.buildDir, destName);
+                const outDataPath = path.join(outPath, "data");
+
+                await fsp.mkdir(outPath, { recursive: true });
+                await copyRecursive(overlaySrc, outDataPath);
+
+                this.dataPaths.push(outDataPath);
+            };
+
+            Object.entries(depConfig.overlays).forEach(([key, directory]) => {
+                const folderName = path.basename(path.join(depPath, directory));
+                const destName = `${depName}_${folderName.replace(/\W+/g, "_")}`;
+
+                this.overlays.push({
+                    range: key,
+                    directory: destName
+                });
+            });
+        };
+
+        const licensePath = path.resolve(depPath, depConfig.licensePath || "./LICENSE.txt");
+        if (await exists(licensePath)) {
+            const parts = dep.replace(/^@/, "").split("/");
             let [user, repo, branch = "main"] = parts;
             if (branch == "") branch = "main";
 
-            if (!user || !repo) {
-                log.error(`Invalid package format: ${depOrig}`);
-                continue;
-            };
+            const repoUrl = `https://github.com/${user}/${repo}/tree/${branch}/`;
 
-            const dep = `${user}/${repo}/${branch}`;
-
-            const depName = dep.replace(/[^\w.-]/g, "_");
-            const depPath = path.join(this.modulesDir, depName);
-
-            if (!fs.existsSync(depPath)) {
-                log.warn(`Dependency not found: ${dep}`);
-                continue;
-            }
-
-            const depConfigPath = path.join(depPath, "dpm-package.json");
-            if (!fs.existsSync(depConfigPath)) {
-                log.warn(`Invalid DPM package (missing dpm-package.json): ${dep}`);
-                continue;
-            }
-
-            const depConfig = JSON.parse(fs.readFileSync(depConfigPath, "utf8"));
-
-            if (depConfig.tick) this.tickFunctions = [
-                ...this.tickFunctions,
-                ...depConfig.tick
-            ];
-
-            if (depConfig.load) this.loadFunctions = [
-                ...this.loadFunctions,
-                ...depConfig.load
-            ];
-
-            const depBase = path.join(depPath, depConfig.base || "./datapack");
-            const depBuildPath = path.join(this.buildDir, depName);
-            const depDataPath = path.join(depBuildPath, "data");
-            fs.mkdirSync(depBuildPath);
-            await copyRecursive(depBase, depDataPath);
-            this.dataPaths.push(depDataPath);
-
-            this.overlays.push({
-                range: depConfig.supportedVersions || "*",
-                directory: depName
-            });
-
-            if (depConfig.overlays) {
-                for await (const [key, overlayPath] of Object.entries(depConfig.overlays)) {
-                    const folderName = path.basename(path.join(depPath, overlayPath));
-                    const destName = `${depName}_${folderName.replace(/\W+/g, "_")}`;
-                    const overlaySrc = path.join(depPath, overlayPath);
-                    const outPath = path.join(this.buildDir, destName);
-                    const outDataPath = path.join(outPath, "data");
-                    fs.mkdirSync(outPath);
-                    await copyRecursive(overlaySrc, outDataPath);
-                    this.dataPaths.push(outDataPath);
-                };
-
-                Object.entries(depConfig.overlays).forEach(([key, directory]) => {
-                    const folderName = path.basename(path.join(depPath, directory));
-                    const destName = `${depName}_${folderName.replace(/\W+/g, "_")}`;
-                    this.overlays.push({
-                        range: key,
-                        directory: destName
-                    });
-                });
-            };
-
-            const licensePath = path.resolve(depPath, depConfig.licensePath || "./LICENSE.txt");
-            if (fs.existsSync(licensePath)) {
-                const parts = dep.replace(/^@/, "").split("/");
-                let [user, repo, branch = "main"] = parts;
-                if (branch == "") branch = "main";
-
-                const repoUrl = `https://github.com/${user}/${repo}/tree/${branch}/`;
-
-                const licenseText = fs.readFileSync(licensePath, "utf8");
-                const detailedText = `
+            const licenseText = await fsp.readFile(licensePath, { encoding: "utf8" });
+            const detailedText = `
          
 
 
 ----- [${dep}] ( ${repoUrl} ) -----
 
 ${licenseText}`;
-                this.licenseTexts.push(detailedText);
-            };
+            this.licenseTexts.push(detailedText);
         };
     };
 
-    mergePackMetaOverlays() {
+    async mergePackMetaOverlays() {
         if (this.logs) log.info("Merging pack.mcmeta overlays...");
 
         const packMetaPath = path.join(this.buildDir, "pack.mcmeta");
         let finalMeta = {};
-        if (fs.existsSync(packMetaPath)) {
-            finalMeta = JSON.parse(fs.readFileSync(packMetaPath, "utf8"));
+        if (await exists(packMetaPath)) {
+            finalMeta = await readJSONCached(packMetaPath, "utf8");
         }
 
         if (Array.isArray(finalMeta)) throw new Error('Invalid pack.mcmeta file');
@@ -265,8 +274,8 @@ ${licenseText}`;
             const loadTagPath = path.join(tagFunctionPath, "load.json");
             const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
-            if (fs.existsSync(loadTagPath)) await fsp.rm(loadTagPath);
-            if (fs.existsSync(tickTagPath)) await fsp.rm(tickTagPath);
+            if (await exists(loadTagPath)) await fsp.rm(loadTagPath);
+            if (await exists(tickTagPath)) await fsp.rm(tickTagPath);
         };
 
         // create new
@@ -274,8 +283,8 @@ ${licenseText}`;
         const loadTagPath = path.join(tagFunctionPath, "load.json");
         const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
-        fs.mkdirSync(path.dirname(loadTagPath), { recursive: true });
-        fs.mkdirSync(path.dirname(tickTagPath), { recursive: true });
+        await fsp.mkdir(path.dirname(loadTagPath), { recursive: true });
+        await fsp.mkdir(path.dirname(tickTagPath), { recursive: true });
 
         fs.writeFileSync(loadTagPath, JSON.stringify({
             values: this.loadFunctions
@@ -324,10 +333,10 @@ ${licenseText}`;
     };
 
     async writeFinalBuild(licenses) {
-        if (this.logs) log.info("Writing final build...");
+        if (this.logs) log.info("Writing licenses...");
 
-        if (fs.existsSync(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
-        fs.mkdirSync(this.buildDir, { recursive: true });
+        if (await exists(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
+        await fsp.mkdir(this.buildDir, { recursive: true });
 
         const creditHeader = `Generated by DPM — https://github.com/BigstoneDevelopment/DPM
 
@@ -345,23 +354,24 @@ Under MIT License`
     };
 
     async cleanup() {
-        if (fs.existsSync(this.buildDir)) await fsp.rmSync(this.buildDir, { recursive: true, force: true });
+        if (await exists(this.buildDir)) await fsp.rmSync(this.buildDir, { recursive: true, force: true });
     };
 
     async build() {
         try {
-            this.loadConfig();
+            await this.loadConfig();
             await this.resetBuild();
             await this.copyProjectBase();
 
             await this.mergeDependencies();
-            this.mergePackMetaOverlays(this.mcMeta);
-            this.createLoadTickFunctions();
+            await this.mergePackMetaOverlays(this.mcMeta);
+            await this.createLoadTickFunctions();
 
             await this.generateDummyFiles(this.dataPaths);
             await this.writeFinalBuild(this.licenseTexts);
         } catch (e) {
             log.error(e);
+            console.log(e)
             log.warn("Removing build files..");
             await cleanup();
         };
