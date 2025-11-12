@@ -17,7 +17,7 @@ export default defineConfig({
         target: "node18",
         ssr: true,
         outDir: "dist",
-        minify: false,
+        minify: true,
         sourcemap: false,
         lib: {
             entry: "src/dpm.js",
