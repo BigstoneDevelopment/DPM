@@ -53,7 +53,7 @@ export async function install(pkg, projectDir) {
 
         const extractedDir = path.join(modulesDir, `${repo}-${branch}`);
         if (fs.existsSync(pkgDir)) {
-            fs.rmdirSync(pkgDir, { recursive: true, force: true });
+            fs.rmSync(pkgDir, { recursive: true, force: true });
         };
         if (fs.existsSync(extractedDir)) {
             fs.renameSync(extractedDir, pkgDir);

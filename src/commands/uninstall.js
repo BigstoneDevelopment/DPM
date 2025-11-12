@@ -71,7 +71,7 @@ export default {
 
         const modulesDir = path.join(projectDir, "dpm_modules");
         if (fs.readdirSync(modulesDir).length === 0) {
-            fs.rmdirSync(modulesDir, { force: true, recursive: true });
+            fs.rm(modulesDir, { force: true, recursive: true });
         };
 
         log.line();
