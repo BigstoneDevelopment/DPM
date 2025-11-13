@@ -4,7 +4,7 @@ export default defineConfig({
     build: {
         target: "node18",
         ssr: true,
-        outDir: "dist",
+        outDir: "dist/bin",
         minify: true,
         sourcemap: false,
         lib: {

@@ -1,0 +1,88 @@
+{
+    "name": "dpm",
+    "displayName": "DPM",
+    "description": "A Minecraft Datapack Package/Library manager.",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.106.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "dpm.setconfig",
+                "title": "Set open file as DPM config",
+                "icon": "$(bracket)"
+            },
+            {
+                "command": "dpm.build",
+                "title": "DPM: Build datapack",
+                "icon": "$(package)"
+            },
+            {
+                "command": "dpm.dev",
+                "title": "DPM: Build datapack with dev server",
+                "icon": "$(play)"
+            },
+            {
+                "command": "dpm.installPackages",
+                "title": "DPM: Install packages",
+                "icon": "$(package)"
+            },
+
+            {
+                "command": "dpm.installPackage",
+                "title": "DPM: Install a package",
+                "icon": "$(symbol-function)"
+            },
+            {
+                "command": "dpm.uninstallPackage",
+                "title": "DPM: Uninstall a package",
+                "icon": "$(symbol-function)"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "dpm.setconfig",
+                    "group": "navigation",
+                    "when": "view == dpmManager && editorIsOpen && resourceFilename == 'dpm.json'"
+                }
+            ]
+        },
+        "viewsWelcome": [
+            {
+                "view": "dpmManager",
+                "contents": "No dpm config found. \n[Set to open file](command:dpm.setconfig)"
+            }
+        ],
+        "views": {
+            "explorer": [
+                {
+                    "id": "dpmManager",
+                    "name": "Manage DPM",
+                    "icon": "$(briefcase)",
+                    "when": "true",
+                    "contextualTitle": "DPM Manager"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "vscode-test"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.106.0",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "22.x",
+        "eslint": "^9.39.1",
+        "@vscode/test-cli": "^0.0.12",
+        "@vscode/test-electron": "^2.5.2"
+    }
+}
