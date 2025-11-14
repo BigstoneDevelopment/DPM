@@ -1,6 +1,6 @@
 {
   "name": "@bigstonedevelopment/dpm",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A Minecraft Datapack Package/Library manager.",
   "keywords": [
     "package",
@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "commander": "^14.0.2"
+    "commander": "^14.0.2",
+    "memfs": "^4.51.0"
   }
 }
