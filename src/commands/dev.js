@@ -21,13 +21,18 @@ export default {
         projectDir = path.dirname(configPath);
 
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        const srcFolder = path.resolve(projectDir, config.datapackPath || "./src");
         const buildFolder = path.resolve(projectDir, config.buildPath || "./build");
-        const tempFolder = path.resolve(projectDir, "__dpm_temp");
-        const modulesFolder = path.resolve(projectDir, "dpm_modules");
 
-        watcher(projectDir, buildFolder, tempFolder, modulesFolder, async (filename, eventType) => {
-            const builder = new DPMBuilder(projectDir, false);
-            await builder.build();
+        const builder = new DPMBuilder(projectDir, false);
+        await builder.build();
+        watcher(projectDir, [buildFolder], async (rebuild, filename, eventType) => {
+            if (rebuild == true) {
+                await builder.build();
+            } else {
+                await builder.updateFile(filename, path.relative(srcFolder, filename));
+            };
+            
             log.success(`[HOTRELOAD] ${eventType} → ${filename}`);
         });
     }

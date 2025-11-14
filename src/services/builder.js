@@ -1,11 +1,13 @@
-import { promises as fsp } from "fs";
-import fs from "fs";
+import { promises as disk } from "fs";
+import { fs } from "memfs";
 import path from "path";
 
 import log from "../utils/log.js";
 import { copyRecursive } from "../utils/copyRecursive.js";
 import { exists } from "../utils/exists.js";
 import { readJSONCached } from "../utils/readJSONCached.js";
+
+const fsp = fs.promises;
 
 export class DPMBuilder {
     constructor(projectDir = process.cwd(), logs = true) {
@@ -24,52 +26,67 @@ export class DPMBuilder {
         this.config = null;
     };
 
+    async importFiles(realDir, memDir) {
+        async function walk(rdir, vdir) {
+            const items = await disk.readdir(rdir, { withFileTypes: true });
 
-    mergePackMeta(baseMeta, overlayMeta) {
-        const result = { ...baseMeta };
-        if (overlayMeta.pack) result.pack = { ...result.pack, ...overlayMeta.pack };
-        return result;
+            for (const item of items) {
+                const src = path.join(rdir, item.name);
+                const dst = path.join(vdir, item.name);
+
+                if (item.isDirectory()) {
+                    await fsp.mkdir(dst, { recursive: true });
+                    await walk(src, dst);
+                } else {
+                    const data = await disk.readFile(src);
+                    await fsp.writeFile(dst, data);
+                };
+            };
+        };
+
+        await walk(realDir, memDir);
+    };
+
+    async exportFiles(dir, diskDir) {
+        async function walk(vdir, rdir) {
+            const items = await fsp.readdir(vdir, { withFileTypes: true });
+
+            for (const item of items) {
+                const src = path.join(vdir, item.name);
+                const dst = path.join(rdir, item.name);
+
+                if (item.isDirectory()) {
+                    await disk.mkdir(dst, { recursive: true });
+                    await walk(src, dst);
+                } else {
+                    const data = await fsp.readFile(src);
+                    await disk.writeFile(dst, data);
+                };
+            };
+        };
+
+        await walk(dir, diskDir);
     };
 
     async loadConfig() {
-        if (!await exists(this.configPath)) {
+        if (!await exists(disk, this.configPath)) {
             log.error("No dpm.json found in", this.projectDir);
             process.exit(1);
         }
-        this.config = await readJSONCached(this.configPath, "utf8");
+        this.config = await readJSONCached(disk, this.configPath);
         this.buildDir = path.resolve(this.projectDir, this.config.buildPath || "./build");
         this.datapackSrc = path.resolve(this.projectDir, this.config.datapackPath || "./src");
     };
 
     async resetBuild() {
-        if (await exists(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
-        await fsp.mkdir(this.buildDir, { recursive: true });
+        if (await exists(disk, this.buildDir)) await disk.rm(this.buildDir, { recursive: true, force: true });
     };
 
 
-    async copyProjectBase() {
-        if (this.logs) log.info("Copying project datapack...");
-        await copyRecursive(this.datapackSrc, this.buildDir);
+    async parseProjectBase() {
+        if (this.logs) log.info("Parsing project datapack...");
 
-        const dataPath = path.join(this.buildDir, "data");
-        const basePath = path.join(this.buildDir, "base");
-        const newDataPath = path.join(basePath, "data");
-
-        if (await exists(dataPath)) {
-            if (await exists(basePath)) await fsp.rm(basePath, { recursive: true, force: true });
-            await fsp.mkdir(basePath, { recursive: true });
-            fs.renameSync(dataPath, newDataPath);
-            this.dataPaths.push(newDataPath);
-            if (this.logs) log.debug("Moved /data > /base/data");
-        }
-
-        this.overlays.push({
-            range: "*",
-            directory: "base"
-        })
-
-        const metaPath = path.join(this.buildDir, "pack.mcmeta");
-        const meta = fs.readFileSync(metaPath);
+        const meta = await fsp.readFile("/build/pack.mcmeta");
         if (meta) this.mcMeta = meta;
         else throw new Error("Pack.mcmeta not found");
 
@@ -84,8 +101,8 @@ export class DPMBuilder {
         ];
 
         const licensePath = path.resolve(this.projectDir, this.config.licensePath || "./LICENSE.txt");
-        if (await exists(licensePath)) {
-            const licenseText = fs.readFileSync(licensePath, "utf8");
+        if (await exists(fsp, licensePath)) {
+            const licenseText = await fsp.readFile(licensePath, { encoding: "utf8" });
             const detailedText = `
          
 
@@ -122,20 +139,20 @@ ${licenseText}`;
         const dep = `${user}/${repo}/${branch}`;
 
         const depName = dep.replace(/[^\w.-]/g, "_");
-        const depPath = path.join(this.modulesDir, depName);
+        const depPath = path.join("/dpm_modules", depName);
 
-        if (!await exists(depPath)) {
+        if (!await exists(fsp, depPath)) {
             log.warn(`Dependency not found: ${dep}`);
             return;
         };
 
         const depConfigPath = path.join(depPath, "dpm-package.json");
-        if (!await exists(depConfigPath)) {
+        if (!await exists(fsp, depConfigPath)) {
             log.warn(`Invalid DPM package (missing dpm-package.json): ${dep}`);
             return;
         };
 
-        const depConfig = await readJSONCached(depConfigPath, "utf8");
+        const depConfig = await readJSONCached(fsp, depConfigPath);
 
         if (depConfig.tick) this.tickFunctions = [
             ...this.tickFunctions,
@@ -148,11 +165,11 @@ ${licenseText}`;
         ];
 
         const depBase = path.join(depPath, depConfig.base || "./datapack");
-        const depBuildPath = path.join(this.buildDir, depName);
+        const depBuildPath = path.join("/build", depName);
         const depDataPath = path.join(depBuildPath, "data");
 
         await fsp.mkdir(depBuildPath, { recursive: true });
-        await copyRecursive(depBase, depDataPath);
+        await copyRecursive(fsp, depBase, depDataPath);
 
         this.dataPaths.push(depDataPath);
 
@@ -167,11 +184,11 @@ ${licenseText}`;
                 const destName = `${depName}_${folderName.replace(/\W+/g, "_")}`;
 
                 const overlaySrc = path.join(depPath, overlayPath);
-                const outPath = path.join(this.buildDir, destName);
+                const outPath = path.join("/build", destName);
                 const outDataPath = path.join(outPath, "data");
 
                 await fsp.mkdir(outPath, { recursive: true });
-                await copyRecursive(overlaySrc, outDataPath);
+                await copyRecursive(fsp, overlaySrc, outDataPath);
 
                 this.dataPaths.push(outDataPath);
             };
@@ -188,7 +205,7 @@ ${licenseText}`;
         };
 
         const licensePath = path.resolve(depPath, depConfig.licensePath || "./LICENSE.txt");
-        if (await exists(licensePath)) {
+        if (await exists(fsp, licensePath)) {
             const parts = dep.replace(/^@/, "").split("/");
             let [user, repo, branch = "main"] = parts;
             if (branch == "") branch = "main";
@@ -210,11 +227,7 @@ ${licenseText}`;
     async mergePackMetaOverlays() {
         if (this.logs) log.info("Merging pack.mcmeta overlays...");
 
-        const packMetaPath = path.join(this.buildDir, "pack.mcmeta");
-        let finalMeta = {};
-        if (await exists(packMetaPath)) {
-            finalMeta = await readJSONCached(packMetaPath, "utf8");
-        }
+        let finalMeta = this.mcMeta || {};
 
         if (Array.isArray(finalMeta)) throw new Error('Invalid pack.mcmeta file');
         if (!finalMeta.overlays) finalMeta.overlays = {};
@@ -274,55 +287,36 @@ ${licenseText}`;
             const loadTagPath = path.join(tagFunctionPath, "load.json");
             const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
-            if (await exists(loadTagPath)) await fsp.rm(loadTagPath);
-            if (await exists(tickTagPath)) await fsp.rm(tickTagPath);
+            if (await exists(fsp, loadTagPath)) await fsp.rm(loadTagPath);
+            if (await exists(fsp, tickTagPath)) await fsp.rm(tickTagPath);
         };
 
         // create new
-        const tagFunctionPath = path.join(this.buildDir, "data", "minecraft", "tags", "function");
+        const tagFunctionPath = path.join("build", "data", "minecraft", "tags", "function");
         const loadTagPath = path.join(tagFunctionPath, "load.json");
         const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
         await fsp.mkdir(path.dirname(loadTagPath), { recursive: true });
         await fsp.mkdir(path.dirname(tickTagPath), { recursive: true });
 
-        fs.writeFileSync(loadTagPath, JSON.stringify({
+        await fsp.writeFile(loadTagPath, JSON.stringify({
             values: this.loadFunctions
         }, null, 4));
 
-        fs.writeFileSync(tickTagPath, JSON.stringify({
+        await fsp.writeFile(tickTagPath, JSON.stringify({
             replace: false,
             values: this.tickFunctions
         }, null, 4));
     };
 
-    async renameMcfunctionFiles(dir) {
-        const entries = await fsp.readdir(dir, { withFileTypes: true });
-
-        await Promise.all(entries.map(async entry => {
-            const fullPath = path.join(dir, entry.name);
-
-            if (entry.isDirectory()) {
-                return this.renameMcfunctionFiles(fullPath);
-            };
-
-            if (entry.isFile() && entry.name.endsWith("._mcfunction")) {
-                const newName = entry.name.replace("._mcfunction", ".mcfunction");
-                const newPath = path.join(dir, newName);
-                await fsp.rename(fullPath, newPath);
-                if (this.logs) log.debug(`Renamed: ${entry.name} → ${newName}`);
-            };
-        }));
-    };
-
     async generateDummyFiles(dataPaths) {
         const creditHeader = ``; // gives problems
-        const targetDataDir = path.join(this.buildDir, "data");
+        const targetDataDir = path.join("/build", "data");
 
         const tasks = [];
 
         for (const sourcePath of dataPaths) {
-            if (!await exists(sourcePath)) continue;
+            if (!await exists(fsp, sourcePath)) continue;
             log.debug(`Overlay: scanning ${sourcePath}`);
             tasks.push(this.copyDummyRecursive(sourcePath, targetDataDir, creditHeader));
         };
@@ -340,7 +334,7 @@ ${licenseText}`;
                 return this.copyDummyRecursive(srcFull, destFull, content);
             } else {
                 await fsp.mkdir(path.dirname(destFull), { recursive: true });
-                return fsp.writeFile(destFull, content, "utf8");
+                return fsp.writeFile(destFull, content, { encoding: "utf8" });
             };
         }));
     };
@@ -359,32 +353,37 @@ Under MIT License`
             ...licenses,
         ].join();
 
-        fs.writeFileSync(path.join(this.buildDir, "LICENSES.txt"), finalLicense, "utf8");
-        fs.writeFileSync(path.join(this.buildDir, "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 4));
-    };
-
-    async cleanup() {
-        if (await exists(this.buildDir)) await fsp.rm(this.buildDir, { recursive: true, force: true });
+        await fsp.writeFile(path.join("build", "LICENSES.txt"), finalLicense, { encoding: "utf8" });
+        await fsp.writeFile(path.join("build", "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 4));
     };
 
     async build() {
         try {
             await this.loadConfig();
             await this.resetBuild();
-            await this.copyProjectBase();
+
+            if (this.logs) log.info("Importing into memory..");
+            await fsp.mkdir("/build");
+            await fsp.mkdir("/dpm_modules");
+            await this.importFiles(this.datapackSrc, "/build");
+            await this.importFiles(this.modulesDir, "/dpm_modules");
+            await this.parseProjectBase();
 
             await this.mergeDependencies();
             await this.mergePackMetaOverlays(this.mcMeta);
             await this.createLoadTickFunctions();
 
-            //await this.renameMcfunctionFiles(this.buildDir);
-
             await this.generateDummyFiles(this.dataPaths);
             await this.writeFinalBuild(this.licenseTexts);
+
+            await this.exportFiles("/build", this.buildDir);
         } catch (e) {
             log.error(e);
-            log.warn("Removing build files..");
-            await this.cleanup();
         };
+    };
+
+    async updateFile(abs, filename) {
+        const destPath = path.resolve(this.buildDir, filename);
+        await disk.copyFile(abs, destPath);
     };
 };

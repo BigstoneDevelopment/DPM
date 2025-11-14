@@ -1,6 +1,6 @@
 {
   "name": "@bigstonedevelopment/dpm",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "A Minecraft Datapack Package/Library manager.",
   "keywords": [
     "package",
@@ -21,17 +21,10 @@
   "author": "Bigstone Development",
   "type": "module",
   "bin": {
-    "dpm": "./dist/bin/dpm.js"
-  },
-  "scripts": {
-    "build": "vite build && chmod +x dist/bin/dpm.js"
+    "dpm": "./bin/dpm.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "commander": "^14.0.2",
-    "memfs": "^4.51.0"
-  },
-  "devDependencies": {
-    "vite": "^7.2.2"
+    "commander": "^14.0.2"
   }
 }
