@@ -80,17 +80,19 @@ export default {
         };
 
         log.line();
+        let successCount = 0;
         for (const pkg of targets) {
             log.info(`Installing ${pkg}...`);
             try {
                 await install(pkg, projectDir);
+                successCount++;
             } catch (err) {
                 log.error(`Failed to install ${pkg}: ${err.message}`);
             };
         };
 
         log.line();
-        log.success("All packages installed successfully.");
+        log.success(`${successCount} package(s) installed successfully.`);
         process.exit();
     }
 };

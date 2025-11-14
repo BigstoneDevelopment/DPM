@@ -86,7 +86,7 @@ export class DPMBuilder {
     async parseProjectBase() {
         if (this.logs) log.info("Parsing project datapack...");
 
-        const meta = await fsp.readFile("/build/pack.mcmeta");
+        const meta = await readJSONCached(fsp, "/build/pack.mcmeta");
         if (meta) this.mcMeta = meta;
         else throw new Error("Pack.mcmeta not found");
 
@@ -120,6 +120,11 @@ ${licenseText}`;
             if (this.logs) log.warn("No dependencies found in dpm.json.");
             return [];
         };
+
+        if (!await exists(disk, this.modulesDir)) {
+            if (this.logs) log.error("No dependencies installed from dpm.json.");
+            return process.exit();
+        }
 
         await this.importFiles(this.modulesDir, "/dpm_modules");
 
@@ -355,8 +360,8 @@ Under MIT License`
             ...licenses,
         ].join();
 
-        await fsp.writeFile(path.join("build", "LICENSES.txt"), finalLicense, { encoding: "utf8" });
-        await fsp.writeFile(path.join("build", "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 4));
+        await fsp.writeFile(path.join("/build", "LICENSES.txt"), finalLicense, { encoding: "utf8" });
+        await fsp.writeFile(path.join("/build", "pack.mcmeta"), JSON.stringify(this.mcMeta, null, 4));
     };
 
     async build() {
