@@ -48,16 +48,7 @@ export async function install(pkg, projectDir) {
 
     const zip = new AdmZip(tmpZip);
     zip.extractEntryTo(`${repo}-${branch}/`, pkgDir, false, true);
-    /*zip.extractAllTo(modulesDir, true);
     fs.unlinkSync(tmpZip);
-
-    const extractedDir = path.join(modulesDir, `${repo}-${branch}`);
-    if (fs.existsSync(pkgDir)) {
-        fs.rmSync(pkgDir, { recursive: true, force: true });
-    };
-    if (fs.existsSync(extractedDir)) {
-        fs.renameSync(extractedDir, pkgDir);
-    };*/
 
     log.success(`Installed ${pkg} > ${pkgDir}`);
 };
