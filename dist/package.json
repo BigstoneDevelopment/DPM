@@ -1,6 +1,6 @@
 {
   "name": "@bigstonedevelopment/dpm",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "A Minecraft Datapack Package/Library manager.",
   "keywords": [
     "package",

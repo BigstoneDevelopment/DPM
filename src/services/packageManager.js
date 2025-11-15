@@ -47,11 +47,6 @@ export async function install(pkg, projectDir) {
     }
 
     const zip = new AdmZip(tmpZip);
-    var zipEntries = zip.getEntries(); // an array of ZipEntry records - add password parameter if entries are password protected
-
-zipEntries.forEach(function (zipEntry) {
-    console.log(`${repo}-${branch}`,zipEntry.entryName);
-});
     zip.extractEntryTo(`${repo}-${branch}/`, pkgDir, false, true);
     /*zip.extractAllTo(modulesDir, true);
     fs.unlinkSync(tmpZip);
