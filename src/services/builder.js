@@ -124,7 +124,7 @@ ${licenseText}`;
         if (!await exists(disk, this.modulesDir)) {
             if (this.logs) log.error("No dependencies installed from dpm.json.");
             return process.exit();
-        }
+        };
 
         await this.importFiles(this.modulesDir, "/dpm_modules");
 
@@ -174,6 +174,11 @@ ${licenseText}`;
         const depBase = path.join(depPath, depConfig.base || "./datapack");
         const depBuildPath = path.join("/build", depName);
         const depDataPath = path.join(depBuildPath, "data");
+
+        if (!await exists(fsp, depBase)) {
+            log.warn(`Invalid DPM package (missing datapack path): ${dep}`);
+            return;
+        };
 
         await fsp.mkdir(depBuildPath, { recursive: true });
         await copyRecursive(fsp, depBase, depDataPath);
