@@ -44,10 +44,31 @@ export async function install(pkg, projectDir) {
 
     if (!fs.existsSync(tmpZip) || fs.statSync(tmpZip).size < 500) {
         throw new Error("Downloaded ZIP file is invalid or empty.");
-    }
+    };
+
+    if (fs.existsSync(pkgDir)) {
+        fs.rmSync(pkgDir, { force: true, recursive: true });
+    };
 
     const zip = new AdmZip(tmpZip);
-    zip.extractEntryTo(`${repo}-${branch}/`, pkgDir, false, true);
+    const prefix = `${repo}-${branch}/`;
+
+    zip.getEntries().forEach(entry => {
+        if (!entry.entryName.startsWith(prefix)) return;
+
+        const rel = entry.entryName.slice(prefix.length);
+        if (!rel) return;
+
+        const destPath = path.join(pkgDir, rel);
+
+        if (entry.isDirectory) {
+            fs.mkdirSync(destPath, { recursive: true });
+        } else {
+            fs.mkdirSync(path.dirname(destPath), { recursive: true });
+            zip.extractEntryTo(entry, path.dirname(destPath), false, true);
+        }
+    });
+
     fs.unlinkSync(tmpZip);
 
     log.success(`Installed ${pkg} > ${pkgDir}`);
