@@ -21,7 +21,7 @@
   "author": "Bigstone Development",
   "type": "module",
   "bin": {
-    "dpm": "./dist/bin/dpm.js"
+    "dpm": "./dist/import.js"
   },
   "scripts": {
     "build": "vite build && chmod +x dist/bin/dpm.js"
