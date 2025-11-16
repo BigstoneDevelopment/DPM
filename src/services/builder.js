@@ -62,6 +62,7 @@ export class DPMBuilder {
                     await walk(src, dst);
                 } else {
                     const data = await fsp.readFile(src);
+                    await disk.mkdir(path.dirname(dst), { recursive: true });
                     await disk.writeFile(dst, data);
                 };
             };
@@ -305,7 +306,7 @@ ${licenseText}`;
         const loadTagPath = path.join(tagFunctionPath, "load.json");
         const tickTagPath = path.join(tagFunctionPath, "tick.json");
 
-        await fsp.mkdir(path.dirname(tagFunctionPath), { recursive: true });
+        await fsp.mkdir(tagFunctionPath, { recursive: true });
 
         await fsp.writeFile(loadTagPath, JSON.stringify({
             values: this.loadFunctions
